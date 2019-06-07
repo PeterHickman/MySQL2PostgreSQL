@@ -6,7 +6,7 @@
 #
 # 1. Needs to handle sequences
 
-SINGLE_QUOTE = "'"
+SINGLE_QUOTE = "'".freeze
 
 NUMBER_PER_INSERT = 100
 
@@ -18,8 +18,8 @@ class CreateSchema
     '/',
     'LOCK TABLES',
     'UNLOCK TABLES',
-    'DROP TABLE',
-  ]
+    'DROP TABLE'
+  ].freeze
 
   TRANSLATE = {
     'int(11)' => 'INTEGER',
@@ -28,8 +28,8 @@ class CreateSchema
     'double' => 'REAL',
     'datetime' => 'TIMESTAMP',
     'varchar(120)' => 'TEXT',
-    'varchar(40)' => 'TEXT',
-  }
+    'varchar(40)' => 'TEXT'
+  }.freeze
 
   def initialize
     @output = []
@@ -50,7 +50,7 @@ class CreateSchema
     rows = []
     table = nil
 
-    in_create = false;
+    in_create = false
 
     File.open(filename, 'r').each do |line|
       skip = false
@@ -72,7 +72,7 @@ class CreateSchema
       line.gsub!("enum('pre-match','in-play')", 'TEXT')
       line.gsub!("enum('1st half','full time')", 'TEXT')
 
-      line = line.gsub('`', '').split(/\s+/).map { |i| TRANSLATE[i] || i }.join(' ')
+      line = line.delete('`').split(/\s+/).map { |i| TRANSLATE[i] || i }.join(' ')
 
       if line.index('CREATE') == 0
         in_create = true
@@ -115,7 +115,7 @@ class CreateSchema
   end
 
   def key_name(table, text)
-    table + '_' + text[1..-2].tr(',','_') + '_idx'
+    table + '_' + text[1..-2].tr(',', '_') + '_idx'
   end
 
   def create_keys(name, keys)
@@ -153,7 +153,7 @@ class CreateInput
     File.open(input, 'r').each do |line|
       next unless line.index('INSERT') == 0
 
-      lhs, rhs = line.chomp.gsub('`', '').split(' VALUES (')
+      lhs, rhs = line.chomp.delete('`').split(' VALUES (')
 
       name = lhs.split(/\s+/).last
 
@@ -166,19 +166,17 @@ class CreateInput
 
       parts = []
 
-      rhs.gsub(/\);$/,'').split('),(').each do |values|
+      rhs.gsub(/\);$/, '').split('),(').each do |values|
         x = split(values)
 
         x.each_with_index do |element, index|
-          next if element == 'NULL' || element == nil
+          next if element == 'NULL' || element.nil?
 
           case data_types[name][index]
           when 'boolean'
             x[index] = element == '0' ? false : true
           when 'text'
             x[index] = 'e' + element.gsub(/\\\'/, "''")
-          else
-            # Do nothing
           end
         end
         parts << x.join(',')
@@ -186,7 +184,7 @@ class CreateInput
 
       while parts.any?
         x = parts.shift(NUMBER_PER_INSERT)
-	o.puts "INSERT INTO #{name} VALUES (#{x.join('),(')});"
+        o.puts "INSERT INTO #{name} VALUES (#{x.join('),(')});"
       end
     end
 
@@ -220,7 +218,7 @@ class CreateInput
         else
           r << part
         end
-        partial = ! partial
+        partial = !partial
       elsif part[0] == SINGLE_QUOTE
         partial = true unless part[-1] == SINGLE_QUOTE
         r << part
@@ -240,10 +238,8 @@ end
 cs = CreateSchema.new
 ci = CreateInput.new
 
-ARGV.each do |filename|
-  cs.parse(filename)
-  cs.write('schema.sql')
+filename = ARGV[0]
 
-  ci.parse(filename, cs.data_types)
-end
-
+cs.parse(filename)
+cs.write('schema.sql')
+ci.parse(filename, cs.data_types)
