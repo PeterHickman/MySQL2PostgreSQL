@@ -8,6 +8,8 @@
 
 SINGLE_QUOTE = "'"
 
+NUMBER_PER_INSERT = 100
+
 class CreateSchema
   attr_reader :data_types
 
@@ -183,8 +185,8 @@ class CreateInput
       end
 
       while parts.any?
-        x = parts.shift
-        o.puts "INSERT INTO #{name} VALUES (#{x});"
+        x = parts.shift(NUMBER_PER_INSERT)
+	o.puts "INSERT INTO #{name} VALUES (#{x.join('),(')});"
       end
     end
 
@@ -245,4 +247,3 @@ ARGV.each do |filename|
   ci.parse(filename, cs.data_types)
 end
 
-  
